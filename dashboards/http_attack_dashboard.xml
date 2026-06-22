@@ -1,0 +1,93 @@
+<dashboard version="1.1">
+<label>HTTP Attack Detection Dashboard</label>
+<description>Monitor brute-force attempts, SQL injection, sensitive file access, and web-shell execution.</description>
+<!--  Total HTTP Events  -->
+<row>
+<panel>
+<title>Total HTTP Events</title>
+<single>
+<search>
+<query>index=main sourcetype="http_custom_logs" | stats count</query>
+</search>
+</single>
+</panel>
+</row>
+<!--  Brute Force Attempts  -->
+<row>
+<panel>
+<title>Login Brute Force Attempts</title>
+<table>
+<search>
+<query> index=main sourcetype="http_custom_logs" uri="/login.php" status=401 | stats count BY src | sort -count </query>
+</search>
+</table>
+</panel>
+</row>
+<!--  Successful Logins  -->
+<row>
+<panel>
+<title>Successful Logins</title>
+<table>
+<search>
+<query> index=main sourcetype="http_custom_logs" uri="/login.php" status=200 | table _time src method uri | sort _time </query>
+</search>
+</table>
+</panel>
+</row>
+<!--  SQL Injection Attempts  -->
+<row>
+<panel>
+<title>SQL Injection Attempts</title>
+<table>
+<search>
+<query> index=main sourcetype="http_custom_logs" | regex uri="(\bOR\b|\bUNION\b|\bSELECT\b|;|')" | table _time src uri status | sort _time </query>
+</search>
+</table>
+</panel>
+</row>
+<!--  Sensitive File Access  -->
+<row>
+<panel>
+<title>Sensitive File Access (.zip, .db)</title>
+<table>
+<search>
+<query> index=main sourcetype="http_custom_logs" | where like(uri, "%.zip") OR like(uri, "%.db") | table _time src uri status </query>
+</search>
+</table>
+</panel>
+</row>
+<!--  File Uploads  -->
+<row>
+<panel>
+<title>Suspicious File Uploads</title>
+<table>
+<search>
+<query> index=main sourcetype="http_custom_logs" | where like(uri, "%upload.php") | table _time src method uri file status | sort _time </query>
+</search>
+</table>
+</panel>
+</row>
+<!--  Web Shell Execution  -->
+<row>
+<panel>
+<title>Web Shell Command Execution</title>
+<table>
+<search>
+<query> index=main sourcetype="http_custom_logs" | where like(uri, "%cmd=%") | table _time src uri status | sort _time </query>
+</search>
+</table>
+</panel>
+</row>
+<!--  Timeline of Suspicious Activity  -->
+<row>
+<panel>
+<title>Suspicious HTTP Activity Timeline</title>
+<chart>
+<search>
+<query> index=main sourcetype="http_custom_logs" | eval suspicious=if( status=401 OR like(uri,"%cmd=%") OR like(uri,"%.zip") OR like(uri,"%.db") OR match(uri,"(OR|UNION|SELECT|;)"), "yes","no") | where suspicious="yes" | timechart count BY src </query>
+</search>
+<option name="charting.chart">line</option>
+</chart>
+</panel>
+</row>
+</dashboard>
